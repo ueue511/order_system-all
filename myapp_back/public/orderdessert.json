@@ -1,0 +1,37 @@
+[
+   {
+      "order_name":"アイス",
+      "price":300,
+      "full_name":"バニラアイス",
+      "temperature":"ice",
+      "img":"./img/sweets_icecream01_vanilla.png"
+   },
+   {
+      "order_name":"ケーキ",
+      "price":330,
+      "full_name":"いちごケーキ",
+      "temperature":"ice",
+      "img":"./img/sweets_shortcake.png"
+   },
+   {
+      "order_name":"パフェ",
+      "price":580,
+      "full_name":"いちごパフェ",
+      "temperature":"ice",
+      "img":"./img/sweets_pafe_parfait_ichigo.png"
+   },
+   {
+      "order_name":"set Hot",
+      "price":120,
+      "full_name":"セットコーヒー",
+      "temperature":"hot",
+      "img":"./img/coffee01_blend.png"
+   },
+   {
+      "order_name":"set Ice",
+      "price":300,
+      "full_name":"セットアイス",
+      "temperature":"ice",
+      "img":"./img/coffee10_iced_coffee.png"
+   }
+]
