@@ -3,9 +3,8 @@ import Api from './index';
 
 export default {
     //メニューリストのresponse処理
-    testPosting(idlist) {
-        const menuid = { id: idlist };
-        return Api().post('/menulist', menuid);
+    testPosting() {
+        return Api().get('/menulist');
     },
 
     //管理画面adminsterのメニューlist

@@ -25,17 +25,22 @@
 
 <script>
 // node.jsとの連携でapp/methodesのメソッド読み込み
-import Methods from '@/api/methods';
 export default {
   data() {
     return {
       lists: "",
     }
   },
-  mounted: async function() {
+  created: async function() {
       //node.js expressにメニューリストのリクエスト
-      this.lists = await Methods.AdminsterList();
+      await this.$store.dispatch("AdminsterList_nodeAction");
+    },
+  watch: {
+    "$store.state.adminsterlist": function() {
+      this.lists = this.$store.state.adminsterlist;
+      console.log(this.lists)
     }
+  }
   }
 </script>
 

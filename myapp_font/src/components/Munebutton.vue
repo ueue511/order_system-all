@@ -2,12 +2,12 @@
 <li>
   <button
   class="LiItem"
-  v-for="(list, index) in this.lists.data"
+  v-for="(list, index) in this.lists"
   :key="index"
   :class="[list.temperature, {push: shownum === index}]"
   >
     <img
-    :src= list.img
+    :src= list.filename
     :alt= list.order_name
     @click="SubTotal(list.full_name, list.price); Push(index)"
     />
@@ -19,7 +19,7 @@
 
 <script>
 // node.jsとの連携でapp/methodesのメソッド読み込み
-import Methods from '@/api/methods';
+// import Methods from '@/api/methods';
 export default {
   data() {
     return {
@@ -31,6 +31,10 @@ export default {
   },
   props: ["MuneListNum"],
 
+  created: async function() {
+    await this.$store.dispatch("MenuList_nodeAction");
+  },
+
   methods: {
     SubTotal(full_name, child_price) {
       this.$store.commit('SubTotalVuex', {full_name, child_price});
@@ -41,13 +45,30 @@ export default {
       this.itemnum = this.$store.state.showid;
     }
   },
+  // 最初のみ実行 created→ watch(MuneListNum)→ store(MenuList_node)→ watch("$store.state.menulistDrink")の流れ
   watch: {
-    MuneListNum: async function() {
+    "$store.state.menulistDrink": function() {
+      this.lists = this.$store.state.menulistDrink
+    },
+
+    MuneListNum: function() {
       //個数表示をリセット
       this.show = false;
       this.shownum = "";
-      //node.js expressにメニューリストのリクエスト
-      this.lists = await Methods.testPosting(this.MuneListNum);
+
+      switch (this.MuneListNum) {
+        case 1:
+          this.lists = this.$store.state.menulistDrink;
+          break;
+          
+        case 2:
+          this.lists = this.$store.state.menulistDessert;
+          break;
+
+        case 3:
+          this.lists = this.$store.state.menulistSetmeal;
+          break;
+      }
     }
   }
 }

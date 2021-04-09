@@ -1,5 +1,8 @@
-import Vue from 'vue'
-import Vuex from 'vuex'
+import Vue from 'vue';
+import Vuex from 'vuex';
+import Methods from '@/api/methods'
+//node.jsのlostアドレスを指定
+//axiosもこちらで使用
 
 Vue.use(Vuex)
 
@@ -10,7 +13,11 @@ export default new Vuex.Store({
     tablemember: "", //人数
     tableno: "", //テーブル番号
     isAction: 1,
-    showid: "" //商品ボタンの個数表示
+    showid: "", //商品ボタンの個数表示
+    menulistDrink: "", //ジャンル別にlistを入れる変数
+    menulistDessert: "",
+    menulistSetmeal: "",
+    adminsterlist: "", //adminsterのページメニュー
   },
   mutations: {
     // 商品ボタンの商品を追加
@@ -27,13 +34,28 @@ export default new Vuex.Store({
       //someでのtrun判定で数量を増加
       //false判定、新規作成
       if (result) {
-        let index = mune_id - 1
+        let index = mune_id - 1;
         state.subtotalList[index].quantity++;
         state.showid = state.subtotalList[index].quantity;
       } else {
         state.subtotalList.push({ name: full_name, price: child_price, quantity: 1 });
         state.showid = 1
       }
+    },
+
+    //メニューリストをnodeより受け取る
+    async MenuList_node(state) {
+      const list = await Methods.testPosting();
+      state.menulistDrink = list.data[0];
+      state.menulistDessert = list.data[1];
+      state.menulistSetmeal = list.data[2];
+      return state.menulistDrink, state.menulistDessert, state.menulistSetmeal;
+    },
+
+    //adminのメニューリスト取得
+    async AdminsterList_node(state) {
+      const add_list = await Methods.AdminsterList();
+      return state.adminsterlist = add_list;
     },
 
     //全てリセット
@@ -45,7 +67,7 @@ export default new Vuex.Store({
 
     //取り消しボタンを押し、削除ボタンの表示判定
     Delete(state, show) {
-      if(show === "visible") {
+      if (show === "visible") {
         return state.DeleteSub = "visible";
       } else {
         return state.DeleteSub = "hidden";
@@ -54,7 +76,7 @@ export default new Vuex.Store({
 
     // 取り消しボタンのリセット
     ResetDelete(state) {
-      state.DeleteSub = "hidden"
+      return state.DeleteSub = "hidden"
     },
 
     //客数・卓番の追加
@@ -65,4 +87,15 @@ export default new Vuex.Store({
       return state.tableno = tablenum
     },
   },
-})
+  //nodeAPI使用
+  actions: {
+    MenuList_nodeAction(context) {
+      context.commit("MenuList_node")
+    },
+
+    AdminsterList_nodeAction(context) {
+      context.commit("AdminsterList_node")
+    }
+
+  },
+});

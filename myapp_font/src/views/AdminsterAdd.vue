@@ -37,7 +37,8 @@ import Form from '../components/Form';
         this.$refs.child.MenuAddChild() //子のメソッドの実行
       },
       Error(childerror){
-        this.error = childerror
+        this.error = childerror;
+        
       }
     }
   };
