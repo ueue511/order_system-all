@@ -53,10 +53,10 @@ const server = app.listen(3010, function () {
 
 //mysqlへの接続の設定
 const con = mysql.createConnection({
-    host: "localhost",
-    user: "root",
-    password: "G6yjQNCi",
-    database: "order_system"
+    host: "",
+    user: "",
+    password: "",
+    database: ""
 });
 
 //テーブル users の作成
