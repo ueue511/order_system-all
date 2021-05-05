@@ -1,8 +1,14 @@
 {
   "name": "mypaa_test",
   "version": "1.0.0",
+  "engines": {
+    "node": "14.x"
+  },
   "description": "test_version",
   "main": "index.js",
+  "engines": {
+    "node": "14.16.0"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "app.js"
