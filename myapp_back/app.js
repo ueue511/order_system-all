@@ -1,6 +1,17 @@
-// 1.expressモジュールをロードし、インスタンス化してappに代入。
+// expressモジュールをロードし、インスタンス化してappに代入。
 const fs = require('fs');
 const express = require("express");
+// ファイルアップロードをimport
+const fileUpload = require('express-fileupload');
+
+//jws発行
+const jwt = require("jsonwebtoken");
+
+//鍵
+const SECRET_KEY = "FG+Cb*Y,pQ$b~sCXWQeC";
+
+//　ファイルアップロードmulterをimporty
+const multer = require('multer')
 
 // corsポリシーに抵触するため、その対策としてcorsを利用する
 const cors = require('cors');
@@ -10,53 +21,114 @@ const app = express();
 
 //mysqlの読み込み
 const mysql = require('mysql');
+const AdmZip = require('adm-zip');
+const { resolve } = require('path');
+const { rejects } = require('assert');
 
 app.use(cors());
 
 // jsonファイル読み込みで必要
 app.use(express.json());
 
+//ファイルのupdateに必要
+app.use(fileUpload());
+
+// adm-zipをインポート
+const zip = new AdmZip()
 
 
-// DB(メニューリスト)の全てのファイルを取り出す
-async function ReadFileMenu() {
-    return new Promise(resolve => {
-        const sql = "SELECT * FROM users";
-        con.query(sql, function (err, result, fields) {
-            if (err) throw err;
-            resolve(result);
+//------------------関数設定------------------//
+
+// DB(ログイン)のユーザ情報などを取り出す関数
+function ReadUser(datauser) {
+    return new Promise((resolve, rejects) => {
+        var list = datauser
+        userlist = JSON.parse(list);
+        const sql = "SELECT * FROM userslogin WHERE name=? AND password=?";
+        con.query(sql, [userlist.username, userlist.password], (err, result, fileld) => {
+        if (err) console.log("err");
+        resolve(result);
         })
+    });
+}
+
+// DB(メニューリスト)の全てのファイルを取り出す関数
+async function ReadFileMenu(menu) {
+    return new Promise(resolve => {
+        if (menu === "menu") {
+            const sql = "SELECT categre,order_name,price,full_name,temperature,filename,id FROM users WHERE look=1";
+            con.query(sql, function (err, result, fields) {
+                if (err) throw err;
+                resolve(result);
+            })
+        } else {
+            const sql = "SELECT id,filepic FROM users WHERE look=1";
+            con.query(sql, function (err, result, fields) {
+                if (err) throw err;
+                resolve(result);
+            })
+        }
     });
 };
 
-// DB(管理者リスト)の全てのファイルを取り出す
+// DB(管理者リスト)の全てのファイルを取り出す関数
 async function ReadFileAdd() {
     return new Promise(resolve => {
         const sql = "SELECT * FROM admins";
         con.query(sql, function (err, result, fields) {
             if (err) throw err;
-            resolve(result);
+            else resolve(result);
         })
     });
 };
 
-//受け取ったファイルのジャンル別の整形
-function MakeList() {
-
+// 画像が入っている連想配列をbase64に変換する関数
+async function ChangeBase(imgdict) {
+    return new Promise(resolve => {
+        const dict = {}
+        for (var a = 0; a < Object.keys(imgdict).length; a++) {
+            const img = imgdict[a].filepic;
+            const baseimg = img.toString("base64");
+            const stringId = String(imgdict[a].id);
+            dict[stringId] = baseimg;
+        }
+        resolve(dict)
+    });
 }
 
-        
+//確認用ミドルウェア
+const auth = (req, res, next) => {
+    let token = "";
+    if (req.headers.authorization && req.headers.authorization.split(' ')[0] === 'Bearer') {
+        token = req.headers.suthorization.split(' ')[1];
+    } else {
+        return next("token none")
+    };
+
+    //トークンの検証
+    jwt.verify(token, SECRET_KEY, function (err, decoded) {
+        if (err) {
+            next(err.message);
+        } else {
+            req.decoded = decoded;
+            next();
+        };
+    });
+}
+
+//--------------------------------------//
+      
 // 2.listen()メソッドを実行して3010番ポートで待ち受け。
-const server = app.listen(3010, function () {
+const server = app.listen(3010, function() {
     console.log("Node.js is listening to PORT:" + server.address().port);
 });
 
 //mysqlへの接続の設定
 const con = mysql.createConnection({
-    host: "",
-    user: "",
-    password: "",
-    database: ""
+    host: process.env.host,
+    user: process.env.user,
+    password: process.env.password,
+    database: process.env.database
 });
 
 //テーブル users の作成
@@ -68,81 +140,140 @@ const con = mysql.createConnection({
 // filename: 画像のpath
 
 //DBに接続
-con.connect(function (err) {
+con.connect(function(err) {
     if (err) throw err;
     console.log("Connected");
-
-    // テーブル作成
-    // const sql = "CREATE TABLE IF NOT EXISTS users (categre VARCHAR(255) NOT NULL, \
-    // order_name VARCHAR(255) NOT NULL, \
-    // price INT NOT NULL, \
-    // full_name VARCHAR(255) NOT NULL, \
-    // temperature VARCHAR(255) NOT NULL, \
-    // filename VARCHAR(255) NOT NULL)";
-    // con.query(sql, function (err, result) {
-    //     if (err) throw err;
-    //     console.log("table created")
-
-    // const sql = 'select * from users';
-    // con.query(sql, function (err, result, fields) {
-    //     if (err) throw err;
-    //     console.log(result);
-    // });
 });
 
-//dbからメニューリストを受け取る
-app.get('/menulist', async function (req, res, next) {
+//dbからメニューリストを受け取り、画像以外を送信
+app.get('/menulist', async function(req, res, next) {
+    const menu = "menu";
     var menulist_all = [];
-    const jsonlist = await ReadFileMenu();
+    const jsonlist = await ReadFileMenu(menu);
     var ObjectDrink = jsonlist.filter((item, index) => {
         if (item.categre == "drink") return true;
     });
+
     var Objectdessert = jsonlist.filter((item, index) => {
         if (item.categre == "dessert") return true;
     });
+
     var Objectsetmeal = jsonlist.filter((item, index) => {
         if (item.categre == "setmeal") return true;
     });
     menulist_all.push(ObjectDrink, Objectdessert, Objectsetmeal);
-    res.json(menulist_all)
 
-    // list_menu = json.Placer.filter(function (item, index) {
-    //     if (item.categre == "drink") return true;
-    // });
-    // for (var i = 0; i < list_menu.length; i++){
-    //     console.log(list_menu[i].order_name)
-    // }
-    // console.log(jsonlist)
+    res.json(menulist_all);
 });
 
-//メニューリストを取得する jsonを直接入れ込む
-// app.get('/menulist', function (req, res, next) {
-//     var menulistJson = []
-//     var JsonObject_drink = JSON.parse(fs.readFileSync("./public/orderdrink.json", "utf8"));
-//     var JsonObject_dessert = JSON.parse(fs.readFileSync("./public/orderdessert.json", "utf8"));
-//     var JsonObject_setmeal = JSON.parse(fs.readFileSync("./public/ordersetmeal.json", "utf8"));
-//     menulistJson.push(JsonObject_drink, JsonObject_dessert, JsonObject_setmeal);
-//     res.json(menulistJson);
-// })
+//dbからメニューリストを受け取り画像のみをbase64に変換して送信
+app.get('/menuimg', async function(req, res, next) {
+    var menuimg_all = [];
+    const menu = "img";
+    const jsonlist = await ReadFileMenu(menu);
+    var menuImg = await ChangeBase(jsonlist);
+    
+//-------------------------------------
+    // res.writeHead(200, {'Content-Type': 'text/plain', 'content-encoding': 'gzip'})
+    // zlib.gzip(menuImg, function(err, buffer){
+    //     res.end(buffer);
+    // });
+//-------------------------------------
+
+    res.json(menuImg);
+});
 
 //管理画面adminsterのメニューリスト取得
-app.get('/adminster', async function (req, res, next) {
+app.get('/adminster', async function(req, res, next) {
     var AddObject = await ReadFileAdd();
     res.json(AddObject);
 });
 
-//管理画面登録adminsteraddのメニューリストを追加
-app.post('/adminsteradd', function (req, res, next) {
-    console.log(ok)
-    var jsonObject = JSON.parse(fs.readFileSync("./public/" + req.body.categre + ".json", "utf8"));
-    jsonObject.push({
-        order_name: req.body.order_name,
-        price: req.body.price,
-        full_name: req.body.full_name,
-        temperature: req.body.temperature,
-        img: req.body.filename
-    });
-    json = JSON.stringify(jsonObject);
-    fs.writeFileSync("./public/" + req.body.categre + ".json", json, "utf8")
-})
+//管理画面登録adminsteraddのメニューリストを新規登録
+app.post('/adminsternew', auth, async function (req, res, next) {
+    //json→連想配列に変換
+    var jsonObject = JSON.parse(req.body.menu);
+    
+    // 各種ファイルを変数に格納
+    const { categre, order_name, price, full_name, temperature, filename } = jsonObject;
 
+    //画像ファイルを格納
+    const filepic = req.files.file.data
+
+    DBRow_worth = [
+        categre,
+        order_name,
+        price,
+        full_name,
+        temperature,
+        filename,
+        filepic
+    ]
+    
+    //sqlの命令を入力
+    const sql = "INSERT INTO users(categre,order_name,price,full_name,temperature,filename,filepic,look) VALUES(?,1);"
+
+    con.query(sql, [DBRow_worth]), (err, result, fields) => {
+        if (err) throw err;
+        resolve(result);
+    }
+});
+
+//管理画面変更adminsterchangeの変更項目及び画像ファイル受け取り
+app.post('/adminsteradd', auth, async function(req, res, next) {
+    //id用の連想配列
+    DBAdd_id = {}
+    DBAdd_pic = {}
+    //json→連想配列に変換
+    var jsonObject = JSON.parse(req.body.menu);
+    DBAdd_id["id"] = jsonObject.id;
+
+    //画像ファイルの有無での処理判定
+    if (req.files != null) {
+        DBAdd_pic["filepic"] = req.files.file.data;
+        const sql = "UPDATE users SET ?,? WHERE ?";
+        delete jsonObject.id;
+        con.query(sql, [jsonObject, DBAdd_pic, DBAdd_id]), (err, result, fields) => {
+            if (err) throw err;
+            resolve(result);
+        }
+    } else {
+        const sql = "UPDATE users SET ? WHERE ?";
+        delete jsonObject.id;
+        con.query(sql, 
+            [jsonObject, DBAdd_id]), (err, result, fields) => {
+            if (err) throw err;
+            resolve(result);
+        }
+    }
+});
+
+//削除
+app.post('/adminsterdelete', auth, (req, res, next) => {
+    listid = JSON.parse(req.body.id);
+    const sql = "UPDATE users SET look=0 WHERE id=?";
+    con.query(sql, [listid.id]), (err, result, fileld) => {
+        if (err) throw err;
+        resolve(result);
+    }
+});
+
+//ログイン
+app.post('/loginuser', function(req, res, next){
+    ReadUser(req.body.login).then(result => {
+        if (Object.keys(result).length === 1) {
+            // JWS発行
+            const payload = {
+                user: req.body.user
+            };
+            const option = {
+                expiresIn: "1m"
+            };
+            const token = jwt.sign(payload, SECRET_KEY, option);
+            res.json({
+                message: "create token",
+                token: token
+            });
+        } else res.send("false")
+    });
+});

@@ -21,7 +21,7 @@
     <div class="tabs"  v-else-if="tabsshow === 'tablegesto'">
         <label><router-link :to="{name: 'Subtotal'}">小計</router-link></label>
         <label><router-link :to="{name: 'Home'}">注文</router-link></label>
-        <label id="adminster_button">
+        <label id="adminster_button" @click="TimeMenber_show">
           <router-link :to="{name: 'Adminster'}">管理</router-link>
         </label>
     </div>
@@ -30,7 +30,7 @@
       <input type="radio" v-model="isActiveChild" value="1" />
       <label >管理</label>
       <input type="radio" />
-      <label id="adminster_button">
+      <label id="adminster_button" @click="TimeMenber_show">
         <router-link :to="{name: 'TebleGesto'}">ホ｜ム</router-link>
         </label>
     </div>
@@ -38,10 +38,25 @@
     <div class="tabs" v-else-if="tabsshow === 'adminsteradd'">
       <input type="radio" v-model="isActiveChild" value="1" />
       <label >登録</label>
-      <input type="radio" />
       <label id="adminster_button">
         <router-link :to="{name: 'Adminster'}">管理</router-link>
         </label>
+    </div>
+
+    <div class="tabs" v-else-if="tabsshow === 'adminsterchange'">
+      <input type="radio" v-model="isActiveChild" value="1" />
+      <label >変更</label>
+      <label id="adminster_button">
+        <router-link :to="{name: 'Adminster'}">管理</router-link>
+      </label>
+    </div>
+
+    <div class="tabs" v-else-if="tabsshow === 'adminsterdelete'">
+      <input type="radio" v-model="isActiveChild" value="1" />
+      <label >削除</label>
+      <label id="adminster_button">
+        <router-link :to="{name: 'Adminster'}">管理</router-link>
+      </label>
     </div>
 </template>
 <script>
@@ -67,8 +82,11 @@ export default {
       }
     },
     SubTotal_show(show) {
-      this.$store.commit('Delete', show)
+      this.$store.commit("Delete", show);
     },
+    TimeMenber_show() {
+      this.$store.commit("TimeMenber_show_store");
+    }
   },
   props:["Tabsnumchild"]
 }

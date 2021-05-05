@@ -21,7 +21,9 @@
             </ul>
           </perfect-scrollbar>
         </div>
-        <Modalwindow />
+        <Modalwindow 
+          :Modalwindowchild = "show_modal_total"
+        />
       </div>
     </div>
 </template>
@@ -38,6 +40,7 @@ export default {
       deleteTrue: this.$store.state.DeleteSub, //取り消しボタンの表示 非表示
       show_modal: false, //送信ボタンを押した際、モーダルウィンドの表示判定
       delete_contents: [], //削除商品を格納するlist
+      show_modal_total: "total_show", //モーダル表示
     };
   },
  

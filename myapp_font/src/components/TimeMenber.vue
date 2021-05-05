@@ -2,7 +2,7 @@
   <span class="tablenameno" >
     <!-- <p>{{year}}/{{mouth}}/{{day}} {{hours}}:{{minutes}}:{{second}}</p> -->
     <p>{{date}} {{horu}}<span class="highlight">:</span>{{minit}}</p>
-    <p>{{tablemember}}名様{{tableno}}卓</p>
+    <p v-show="show">{{tablemember}}名様{{tableno}}卓</p>
   </span>
 </template>
 
@@ -18,6 +18,13 @@ export default {
       week: ["（日）","（月）","（火）","（水）","（木）","（金）","（土）",],
       tableno: this.$store.state.tableno, //人数
       tablemember: this.$store.state.tablemember, //テーブル番号
+    }
+  },
+  computed: {
+    show: {
+      get(){
+        return this.$store.state.timemenber
+      }
     }
   },
   mounted() {

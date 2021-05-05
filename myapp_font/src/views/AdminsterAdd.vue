@@ -5,12 +5,20 @@
     />
     <ul class="contents">
       <TimeMenber/>
-      <Form ref="child" @getChilderror="Error"/>
-      <div class="error">{{error}}</div>
-      
-      <button class="pay" @click="MenuAdd">
+      <Form 
+        ref="child" 
+        @getChilderror="Error"
+      />
+    <!-- エラーメッセージ<div class="error">{{error}}</div> -->
+
+      <!-- <button class="pay" @click="MenuAdd">
           登録
-      </button>
+      </button> -->
+      <Modalwindow 
+        :Modalwindowchild = "show_modal_add"
+        :Modalwindowerror = "error"
+        @add_Modal = "MenuAdd"
+      />
     </ul>
   </div>
 </template>
@@ -19,17 +27,21 @@
 import Tabs from "../components/Tabs";
 import TimeMenber from '../components/TimeMenber';
 import Form from '../components/Form';
+import Modalwindow from '../components/Modalwindow';
+
   export default {
     components: {
      Tabs,
      TimeMenber,
      Form,
+     Modalwindow,
     },
     data() {
       return {
         isActive: "",
-        tabs: 'adminsteradd',
-        error: "" //エラー文を放り込む
+        tabs: "adminsteradd",
+        error: "", //エラー文を放り込む
+        show_modal_add: "add_show", //モーダル表示
       };     
     },
     methods: {
@@ -38,7 +50,6 @@ import Form from '../components/Form';
       },
       Error(childerror){
         this.error = childerror;
-        
       }
     }
   };
@@ -46,7 +57,7 @@ import Form from '../components/Form';
 
 <style scoped>
 .error {
-  margin:10vh 10vw;
+  margin:5vh 10vw;
   color:red;
   font-size: 18px;
 }

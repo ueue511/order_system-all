@@ -3,7 +3,7 @@
 <li>
   <button
   class="LiItem"
-  v-for="(list, index) in this.lists.data"
+  v-for="(list, index) in this.lists"
   :key="index">
     <router-link :to="{name: list.path}">
       <img
@@ -14,11 +14,22 @@
     <p>{{list.adminster_menu}}</p>
   </button>
 </li>
+
 <form class="table_form_admin">
-  <input class="table_no_look" type="text" placeholder="name:"/>
+  <input class="table_no_look" 
+    v-model="username" 
+    type="text"  
+    placeholder="name:"
+  />
 </form>
 <form class="table_form_admin">
-  <input class="table_no_look" type="text" placeholder="password:"/>
+  <input class="table_no_look" 
+    v-model="password" 
+    type="text" 
+    placeholder="password:"
+  />
+  <div class="login_vali" v-if="show">{{ error_messge }}</div>
+  <div class="login_vali" v-if="showafter">名前、パスワードに誤りがあります。</div>
 </form>
 </div>
 </template>
@@ -29,19 +40,69 @@ export default {
   data() {
     return {
       lists: "",
+      username: "",
+      password: "",
+      show:false,
+      error_messge: "",
     }
   },
-  created: async function() {
+  //--------------
+  computed: {
+    showafter() {
+      return this.$store.state.showStoreafter;
+    }
+  },
+  //--------------
+  created:  
+    async function() {
       //node.js expressにメニューリストのリクエスト
       await this.$store.dispatch("AdminsterList_nodeAction");
     },
+  methods: {
+    //ログイン入力時のバリデーション
+    LoginBaes() {
+      this.error_messge = ""
+      if(this.username && this.password) {
+        if(!this.CheckString(this.username)){
+          this.show = true;
+          this.error_messge = "名前は半角英数で入力してください";
+        } else if(!this.CheckString(this.password)) {
+          this.show = true;
+          this.error_messge = "パスワードは英数字記号で入力して下さい";
+        } else {
+          this.show = false;
+          var userlist = {username: this.username, password: this.password};
+          this.$store.dispatch("Login_adminster", userlist);
+        }
+      } else if(this.username === "") { 
+        this.show = true;
+          if(this.password === "") {
+            this.error_messge = "名前、パスワードを入力してください";
+          } else if(this.password) {
+            this.error_messge = "名前を入力してください";
+          }
+      } else {
+        this.show = true;
+        this.error_messge = "パスワードを入力してください"
+        }
+    },
+    // ユーザーのバリデーション 半角英数
+    CheckString(text){
+      var re = /^[A-Za-z0-9]*$/;
+      return re.test(text)
+    },
+    // パスワードのバリデーション 英数字記号
+    CheckPassword(pass){
+      var re = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!-/:-@[-`{-~])[!-~]$/i;
+      return re.test(pass)
+    }
+  },
   watch: {
     "$store.state.adminsterlist": function() {
       this.lists = this.$store.state.adminsterlist;
-      console.log(this.lists)
-    }
+    },
   }
-  }
+}
 </script>
 
 <style scoped>
@@ -123,6 +184,12 @@ ul {
 
 .table_form_admin:nth-of-type(2){
   margin-top: 8vh;
+}
+
+.login_vali {
+  margin-top: 15px;
+  font-size: 16px;
+  color: red;
 }
 
 </style>

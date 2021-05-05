@@ -7,7 +7,7 @@
   :class="[list.temperature, {push: shownum === index}]"
   >
     <img
-    :src= list.filename
+    :src="MenuImg(list.id)"
     :alt= list.order_name
     @click="SubTotal(list.full_name, list.price); Push(index)"
     />
@@ -19,11 +19,12 @@
 
 <script>
 // node.jsとの連携でapp/methodesのメソッド読み込み
-// import Methods from '@/api/methods';
+
 export default {
   data() {
     return {
       lists: "",
+      listsImg: "",
       show: false,
       shownum: "",
       itemnum: "",
@@ -33,6 +34,14 @@ export default {
 
   created: async function() {
     await this.$store.dispatch("MenuList_nodeAction");
+  },
+
+  computed: {
+    MenuImg: function(){
+      return function(id){
+        return "data:image/png;base64," + this.$store.state.menuimg_all[id];
+      }
+    }
   },
 
   methods: {
@@ -59,6 +68,25 @@ export default {
       switch (this.MuneListNum) {
         case 1:
           this.lists = this.$store.state.menulistDrink;
+          this.listsImg = this.$store.state.menuImg;
+
+          //貰ったbuffer
+          // console.log(ArrayBuffer.isView(this.lists[6].filepic))
+          
+          // var blob = new Blob([this.lists[6].filepic], { type: "image/png"});
+
+          // //確認
+          // console.log(blob)
+
+          // var reader = new FileReader();
+          // reader.onload = function() {
+          //   var b64 = reader.result;
+          //   console.log(b64);
+          // }
+          // //B64で変換したurl
+          // reader.readAsDataURL(blob);
+          
+
           break;
           
         case 2:
