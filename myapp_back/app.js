@@ -4,6 +4,11 @@ const express = require("express");
 // ファイルアップロードをimport
 const fileUpload = require('express-fileupload');
 
+//.envfileの読み込み
+if (process.env.NODE_ENV !== "production") {
+    require("dotenv").config();
+}
+
 //jws発行
 const jwt = require("jsonwebtoken");
 
@@ -36,6 +41,52 @@ app.use(fileUpload());
 // adm-zipをインポート
 const zip = new AdmZip()
 
+// 2.listen()メソッドを実行して3010番ポートで待ち受け。
+// var port = process.env.PORT || 3010
+var port = 3010
+
+const server = app.listen(port, function() {
+    console.log("Node.js is listening to PORT:" + server.address().port);
+});
+
+// //mysqlへの接続の設定
+// const con = mysql.createConnection({
+//     host: process.env.host,
+//     user: process.env.user,
+//     password: process.env.password,
+//     database: process.env.database
+// });
+
+//mysqlへの接続の設定 コネクションプール
+var pool = mysql.createPool ({
+    connectionLimit: 10,
+    host: process.env.host,
+    user: process.env.user,
+    password: process.env.password,
+    database: process.env.database
+});
+
+//コネクション接続確認
+// pool.on("acquire", (connection) => {
+//     console.log("Mysql'poll is access ok")
+// })
+
+//テーブル users の作成
+// categre: setmeal.食事 drink.飲み物 dessert.デザート
+// order_name: 略語
+// price: 値段
+// full_name: 正式名所
+// temperature: hot or ice
+// filename: 画像のpath
+
+//DBに接続
+// con.connect(function(err) {
+//     if (err) {
+//         console.log("err database, try after 5sec")
+//         setTimeout(() => con.connect(), 5000)
+//     };
+//     console.log("Connected");
+// });
 
 //------------------関数設定------------------//
 
@@ -45,10 +96,13 @@ function ReadUser(datauser) {
         var list = datauser
         userlist = JSON.parse(list);
         const sql = "SELECT * FROM userslogin WHERE name=? AND password=?";
-        con.query(sql, [userlist.username, userlist.password], (err, result, fileld) => {
-        if (err) console.log("err");
-        resolve(result);
-        })
+        pool.getConnection((err, connection) => {
+            if (err) console.log("err");
+            connection.query(sql, [userlist.username, userlist.password], (err, result, fileld) => {
+                connection.release();
+                resolve(result);
+            });
+        });
     });
 }
 
@@ -57,16 +111,34 @@ async function ReadFileMenu(menu) {
     return new Promise(resolve => {
         if (menu === "menu") {
             const sql = "SELECT categre,order_name,price,full_name,temperature,filename,id FROM users WHERE look=1";
-            con.query(sql, function (err, result, fields) {
+            //-----
+            pool.getConnection((err, connection) => {
                 if (err) throw err;
-                resolve(result);
+                connection.query(sql, (err, result, fields) =>{
+                    connection.release();
+                    resolve(result)
+                })
             })
+            //-----
+            // con.query(sql, function (err, result, fields) {
+            //     if (err) throw err;
+            //     resolve(result);
+            // })
         } else {
             const sql = "SELECT id,filepic FROM users WHERE look=1";
-            con.query(sql, function (err, result, fields) {
+            //---
+            pool.getConnection(function (err, connection) {
                 if (err) throw err;
-                resolve(result);
+                connection.query(sql, function (err, result, fields) {
+                    connection.release();
+                    resolve(result)
+                })
             })
+            //---
+            // con.query(sql, function (err, result, fields) {
+            //     if (err) throw err;
+            //     resolve(result);
+            // })
         }
     });
 };
@@ -75,10 +147,13 @@ async function ReadFileMenu(menu) {
 async function ReadFileAdd() {
     return new Promise(resolve => {
         const sql = "SELECT * FROM admins";
-        con.query(sql, function (err, result, fields) {
+        pool.getConnection((err, connection) => {
             if (err) throw err;
-            else resolve(result);
-        })
+            connection.query(sql, (err, result, fields) => {
+                connection.release
+                resolve(result);
+            });
+        });
     });
 };
 
@@ -100,7 +175,7 @@ async function ChangeBase(imgdict) {
 const auth = (req, res, next) => {
     let token = "";
     if (req.headers.authorization && req.headers.authorization.split(' ')[0] === 'Bearer') {
-        token = req.headers.suthorization.split(' ')[1];
+        token = req.headers.authorization.split(' ')[1];
     } else {
         return next("token none")
     };
@@ -118,32 +193,7 @@ const auth = (req, res, next) => {
 
 //--------------------------------------//
       
-// 2.listen()メソッドを実行して3010番ポートで待ち受け。
-const server = app.listen(3010, function() {
-    console.log("Node.js is listening to PORT:" + server.address().port);
-});
 
-//mysqlへの接続の設定
-const con = mysql.createConnection({
-    host: process.env.host,
-    user: process.env.user,
-    password: process.env.password,
-    database: process.env.database
-});
-
-//テーブル users の作成
-// categre: setmeal.食事 drink.飲み物 dessert.デザート
-// order_name: 略語
-// price: 値段
-// full_name: 正式名所
-// temperature: hot or ice
-// filename: 画像のpath
-
-//DBに接続
-con.connect(function(err) {
-    if (err) throw err;
-    console.log("Connected");
-});
 
 //dbからメニューリストを受け取り、画像以外を送信
 app.get('/menulist', async function(req, res, next) {
@@ -168,7 +218,6 @@ app.get('/menulist', async function(req, res, next) {
 
 //dbからメニューリストを受け取り画像のみをbase64に変換して送信
 app.get('/menuimg', async function(req, res, next) {
-    var menuimg_all = [];
     const menu = "img";
     const jsonlist = await ReadFileMenu(menu);
     var menuImg = await ChangeBase(jsonlist);
@@ -213,14 +262,18 @@ app.post('/adminsternew', auth, async function (req, res, next) {
     //sqlの命令を入力
     const sql = "INSERT INTO users(categre,order_name,price,full_name,temperature,filename,filepic,look) VALUES(?,1);"
 
-    con.query(sql, [DBRow_worth]), (err, result, fields) => {
+    pool.getConnection((err, connection) => {
         if (err) throw err;
-        resolve(result);
-    }
+        connection.query(sql, [DBRow_worth]), (err, result, fields) => {
+            connection.release();
+            resolve(result);
+        };
+    });
 });
 
 //管理画面変更adminsterchangeの変更項目及び画像ファイル受け取り
-app.post('/adminsteradd', auth, async function(req, res, next) {
+app.post('/adminsteradd', auth, async function (req, res, next) {
+    
     //id用の連想配列
     DBAdd_id = {}
     DBAdd_pic = {}
@@ -233,18 +286,25 @@ app.post('/adminsteradd', auth, async function(req, res, next) {
         DBAdd_pic["filepic"] = req.files.file.data;
         const sql = "UPDATE users SET ?,? WHERE ?";
         delete jsonObject.id;
-        con.query(sql, [jsonObject, DBAdd_pic, DBAdd_id]), (err, result, fields) => {
+        pool.getConnection((err, connection) => {
             if (err) throw err;
-            resolve(result);
-        }
+            connection.query(sql, [jsonObject, DBAdd_pic, DBAdd_id], (err, result, fields) => {
+                if (err) throw err;
+                res.status(200).send("")
+                connection.release()
+            });
+        });
     } else {
         const sql = "UPDATE users SET ? WHERE ?";
         delete jsonObject.id;
-        con.query(sql, 
-            [jsonObject, DBAdd_id]), (err, result, fields) => {
+        pool.getConnection((err, connection) => {
             if (err) throw err;
-            resolve(result);
-        }
+            connection.query(sql, [jsonObject, DBAdd_id], (err, result, fields) => {
+                if (err) throw err;
+                res.status(200).send("")
+                connection.release();
+            });
+        });
     }
 });
 
@@ -252,10 +312,13 @@ app.post('/adminsteradd', auth, async function(req, res, next) {
 app.post('/adminsterdelete', auth, (req, res, next) => {
     listid = JSON.parse(req.body.id);
     const sql = "UPDATE users SET look=0 WHERE id=?";
-    con.query(sql, [listid.id]), (err, result, fileld) => {
+    pool.getConnection((err, connection) => {
         if (err) throw err;
-        resolve(result);
-    }
+        connection.query(sql, [listid.id]), (err, result, fileld) => {
+            connection.release()
+            resolve(result);
+        }
+    })
 });
 
 //ログイン

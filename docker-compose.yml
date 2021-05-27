@@ -1,0 +1,46 @@
+version: '3.7'
+
+services:
+  myapp_back:
+    build:
+      context: ./myapp_back
+      dockerfile: Dockerfile
+    ports:
+      - '3010:3010'
+    # volumes:
+    #   - './node_data:/usr/src/app'
+    depends_on:
+      - db
+    tty: true
+    stdin_open: true
+    # environment:
+
+      # WAIT_HOSTS: db:3306
+
+    # command: bash -c "/wait && /node app.js"
+    command: node app.js
+
+  myapp_front_ngnix:
+    build: 
+      context: ./myapp_front
+      dockerfile: Dockerfile
+    ports:
+      - 8080:80
+    depends_on:
+      - db
+      - myapp_back
+
+  db:
+    image: mysql:5.7
+    command: --max_allowed_packet=32000000
+            #  --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    env_file:
+      - ./mysql/mysql.env
+    environment: 
+      - MYSQL_ROOT_PASSWORD=root
+      - TZ=Asia/Tokyo
+    volumes:
+      - ./mysql/initdb.d:/docker-entrypoint-initdb.d
+      - ./mysql_data:/var/lib/mysql
+    ports:
+      - '3307:3306'

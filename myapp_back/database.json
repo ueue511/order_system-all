@@ -1,0 +1,8 @@
+{
+  "dev": {
+    "driver": "mysql",
+    "user": "root",
+    "password": "G6yjQNCi",
+    "database": "order_system"
+  }
+}
